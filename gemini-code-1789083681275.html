@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Save the Cat — 90 Levels</title>
+<style>
+:root{--bg:#0b0f19;--panel:#161f38;--amber:#ffb703;--mint:#06d6a0;--coral:#ef476f;--text:#ffffff;--dim:#8d99ae}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+.screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:radial-gradient(900px 600px at 20% 0,#1d2a4a,transparent 60%),var(--bg)}.screen.active{display:flex}
+.card{width:min(480px,92vw);padding:32px;border-radius:22px;background:linear-gradient(#1f2d4d,#111828);border:1px solid #ffffff20;box-shadow:0 20px 70px #000000aa}
+h1{font-size:38px;margin:0 0 7px;font-weight:800}h2{margin:0 0 10px}.eyebrow{color:var(--amber);font-weight:800;margin-bottom:7px}.sub{color:var(--dim);line-height:1.5;margin:0 0 24px}
+label{display:block;color:var(--dim);font-size:13px;font-weight:700;margin:0 0 7px}input{width:100%;padding:13px 14px;border-radius:99px;border:1px solid #ffffff30;background:#080c14;color:white;font-size:16px;outline:none;margin-bottom:15px}input:focus{border-color:var(--amber)}
+.colors{display:flex;gap:12px;margin-bottom:18px}.swatch{width:36px;height:36px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .1s}.swatch.sel{border-color:#fff;transform:scale(1.15)}
+.tabs{display:flex;gap:5px;padding:5px;background:#080c14;border-radius:12px;margin-bottom:18px}.tabs button{flex:1;background:transparent;color:var(--dim);border:0;padding:10px;border-radius:8px;font-weight:700;cursor:pointer}.tabs button.active{background:var(--amber);color:#111}
+button{font:inherit}.btn{width:100%;padding:14px;border:0;border-radius:99px;cursor:pointer;font-weight:800}.primary{background:var(--amber);color:#111}.ghost{background:#ffffff10;color:white;border:1px solid #ffffff20}.danger{background:#ef476f20;color:#ff85a1;border:1px solid #ef476f40}.row{display:flex;gap:10px;margin-top:10px}
+.msg{display:none;margin-top:12px;padding:10px;border-radius:99px;font-size:13px;text-align:center}.msg.show{display:block}.err{background:#ef476f20;color:#ff85a1}.info{background:#06d6a020;color:#70e4c8}
+.codebox{text-align:center;background:#080c14;border:1px dashed #ffb70388;border-radius:14px;padding:18px;margin-bottom:20px}.code{font-size:38px;font-weight:900;letter-spacing:8px;color:var(--amber)}
+.players{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}.player{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#ffffff10;border-radius:8px}.dot{width:14px;height:14px;border-radius:50%;border:1px solid #ffffff40}.pname{flex:1;font-weight:700}.host{font-size:11px;color:var(--amber);font-weight:800}
+#screen-game{display:block;background:#000}#gamecanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hud{position:absolute;inset:0;pointer-events:none}
+.box{background:#080c14dd;backdrop-filter:blur(6px);border:1px solid #ffffff25;border-radius:12px;padding:11px 14px}
+.top{position:absolute;top:16px;left:16px}
+.right{position:absolute;top:16px;right:16px;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.bottom{position:absolute;bottom:18px;left:50%;transform:translateX(-50%)}
+.cross{position:absolute;left:50%;top:50%;width:6px;height:6px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;box-shadow:0 0 0 2px #0008}
+
+#levelBadge { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--amber); font-weight: 800; }
+#levelTitleMain { font-size: 20px; font-weight: 900; color: #fff; margin-top: 2px; }
+#objective { font-size: 13px; color: var(--dim); margin-top: 4px; }
+.chip { font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+
+#audioToggleBtn {
+  position: absolute;
+  top: 16px;
+  right: 210px;
+  pointer-events: auto;
+  background: #080c14dd;
+  backdrop-filter: blur(6px);
+  border: 1px solid #ffffff25;
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s, border-color 0.2s;
+}
+#audioToggleBtn:hover { background: #16223edd; border-color: var(--amber); }
+
+.leave{position:absolute;right:16px;bottom:16px;pointer-events:auto;width:auto;padding:9px 14px;border-radius:999px}
+#lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#000000aa;cursor:pointer}.locktext{text-align:center}.locktext b{font-size:23px}.locktext div{color:var(--dim);margin-top:5px}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#000000bb;z-index:5}.overlay.show{display:flex}.overcard{text-align:center;width:min(410px,90vw);padding:34px;border-radius:22px;background:linear-gradient(#1f2d4d,#111828);border:1px solid #ffffff20}.overcard p{color:var(--dim);line-height:1.5}
+</style>
+</head>
+<body>
+<div id="menu" class="screen active">
+ <div class="card">
+  <div class="eyebrow">🐾 RESCUE SQUAD</div><h1>Save the Cat</h1>
+  <p class="sub">Team up with up to 5 players and conquer 90 rescue missions[cite: 2].</p>
+  <label>Your name</label><input id="name" maxlength="14" placeholder="Rescuer">
+  <label>Your color</label><div id="colors" class="colors"></div>
+  <div class="tabs"><button id="hostTab" class="active">Host</button><button id="joinTab">Join</button></div>
+  <div id="hostPanel"><button id="hostBtn" class="btn primary">Create lobby</button></div>
+  <div id="joinPanel" style="display:none"><label>Lobby code</label><input id="code" maxlength="5" placeholder="ABCDE" style="text-transform:uppercase;text-align:center;letter-spacing:5px;font-weight:800"><button id="joinBtn" class="btn primary">Join lobby</button></div>
+  <div id="menuMsg" class="msg"></div>
+ </div>
+</div>
+
+<div id="lobby" class="screen">
+ <div class="card">
+  <div class="eyebrow">🐾 LOBBY</div><h2>Waiting for the crew</h2><p class="sub">Share this code with your friends[cite: 2].</p>
+  <div class="codebox"><div style="font-size:12px;color:var(--dim)">JOIN CODE</div><div id="lobbyCode" class="code">-----</div><div style="font-size:12px;color:var(--dim)">Up to 5 players[cite: 2]</div></div>
+  <div id="playerList" class="players"></div>
+  <button id="startBtn" class="btn primary">Start rescue</button>
+  <div id="guestWait" class="msg info show">Waiting for the host to start…</div>
+  <div class="row"><button id="leaveLobby" class="btn ghost">Leave</button></div>
+  <div id="lobbyMsg" class="msg"></div>
+ </div>
+</div>
+
+<div id="game" class="screen">
+ <canvas id="gamecanvas"></canvas>
+ <div id="hud">
+  <div class="box top">
+    <div id="levelBadge">Mission 1</div>
+    <div id="levelName">Level Name</div>
+    <div id="objective">Objective description goes here</div>
+  </div>
+  <div id="playersHud" class="right"></div>
+  <button id="audioToggleBtn">🔊 Sound: ON</button>
+  <div class="cross"></div>
+  <div class="box bottom" id="prompt">WASD move · Mouse look · Space jump</div>
+  <button id="leaveGame" class="btn danger leave">Leave game</button>
+ </div>
+ <div id="lock"><div class="locktext"><b>Click to enter</b><div>WASD · Space · Mouse look · Esc releases mouse</div></div></div>
+ <div id="victory" class="overlay"><div class="overcard"><div class="eyebrow">CAT RESCUED 🐱</div><h2 id="victoryTitle">Level complete!</h2><p id="victoryText">Great teamwork[cite: 2].</p><button id="nextBtn" class="btn primary">Next level</button></div></div>
+ <div id="final" class="overlay"><div class="overcard"><div class="eyebrow">ALL CATS SAFE 🐱</div><h2>YOU BEAT ALL 90 LEVELS!</h2><p>You are the ultimate Cat Rescue Team!</p><button id="menuBtn" class="btn primary">Back to menu</button></div></div>
+ <div id="disconnect" class="overlay"><div class="overcard"><div class="eyebrow" style="color:var(--coral)">CONNECTION LOST</div><h2>Host disconnected</h2><p>The lobby is no longer available[cite: 2].</p><button id="discBtn" class="btn primary">Back to menu</button></div></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+"use strict";
+
+const PREFIX="stc9-", MAX=5;
+const COLORS=["#ffb703","#ff477e","#06d6a0","#118ab2","#9d4edd","#f15bb5"];
+const CHARS="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+const ICE_SERVERS = [
+  { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] }
+];
+
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const codeGen=()=>{let s="";for(let i=0;i<5;i++)s+=CHARS[Math.floor(Math.random()*CHARS.length)];return s};
+
+let selectedColor=COLORS[0];
+COLORS.forEach((c,i)=>{const e=document.createElement("div");e.className="swatch"+(i===0?" sel":"");e.style.background=c;e.onclick=()=>{document.querySelectorAll(".swatch").forEach(x=>x.classList.remove("sel"));e.classList.add("sel");selectedColor=c};$("colors").appendChild(e)});
+
+const SoundFX = {
+  ctx: null,
+  enabled: true,
+  init() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  },
+  toggle() {
+    this.enabled = !this.enabled;
+    const btn = $('audioToggleBtn');
+    if (btn) btn.textContent = this.enabled ? "🔊 Sound: ON" : "🔇 Sound: OFF";
+    return this.enabled;
+  },
+  playJump() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, t);
+    osc.frequency.exponentialRampToValueAtTime(450, t + 0.15);
+    gain.gain.setValueAtTime(0.15, t);
+    gain.gain.linearRampToValueAtTime(0.01, t + 0.15);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.15);
+  },
+  playKey() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t + idx * 0.06);
+      gain.gain.setValueAtTime(0.1, t + idx * 0.06);
+      gain.gain.linearRampToValueAtTime(0.01, t + idx * 0.06 + 0.15);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t + idx * 0.06);
+      osc.stop(t + idx * 0.06 + 0.15);
+    });
+  },
+  playSwitch() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(440, t + 0.2);
+    gain.gain.setValueAtTime(0.1, t);
+    gain.gain.linearRampToValueAtTime(0.01, t + 0.2);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  },
+  playVictory() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const notes = [440, 554.37, 659.25, 880];
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t + idx * 0.12);
+      gain.gain.setValueAtTime(0.15, t + idx * 0.12);
+      gain.gain.linearRampToValueAtTime(0.01, t + idx * 0.12 + 0.3);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t + idx * 0.12);
+      osc.stop(t + idx * 0.12 + 0.3);
+    });
+  }
+};
+
+const G={
+ name:"Rescuer",color:selectedColor,isHost:false,peer:null,conn:null,conns:new Map(),
+ myId:null,code:null,players:new Map(),remote:new Map(),
+ level:0,status:"lobby",levelState:{},netTimer:null,started:false
+};
+function msg(el,text,error=true){el.textContent=text;el.className="msg show "+(error?"err":"info")}
+function screen(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));$(id).classList.add("active")}
+
+function P(x,z,y,w,d,h=1){return {x,z,y,w,d,h,minX:x-w,maxX:x+w,minZ:z-d,maxZ:z+d,top:y}}
+
+// 90 TOTAL PROGRESSIVE LEVELS (Original 30[cite: 2] + 60 Added Levels)
+const LEVELS=[
+ // --- Original 30 Levels[cite: 2] ---
+ {name:"Beginner Step",objective:"Reach the cat at the top of the ramp.",sky:"#0b132b",ground:"#1c2541",spawn:{x:0,y:2,z:10,ry:0},cat:{x:0,y:4,z:-8},platforms:[P(0,0,.5,10,10),P(0,-8,2,3,3)]},
+ {name:"Rescue Ridge",objective:"Climb the wide ledges to reach the kitten.",sky:"#0d1b2a",ground:"#1b263b",spawn:{x:0,y:2,z:10,ry:0},cat:{x:0,y:7,z:-10},platforms:[P(0,0,.5,12,12),P(0,-6,1.2,3,3),P(3.5,-9,2,2.5,2.5),P(0,-16,3.6,2.5,2.5),P(-3.5,-9,5.2,2.5,2.5),P(0,-10,6,4,3)]},
+ {name:"Switch Bridge",objective:"Step on any plate to permanently raise the bridge!",sky:"#10002b",ground:"#240046",spawn:{x:0,y:2,z:11,ry:0},cat:{x:0,y:1.8,z:-13},platforms:[P(0,10,.5,6,5),P(0,-12,.5,6,5),P(-4,4,1,2.5,2.5,1),P(4,4,1,2.5,2.5,1)],plates:[{x:-4,z:4},{x:4,z:4}],bridge:P(0,-1,.6,2.5,7.4,.5)},
+ {name:"Key Yard",objective:"Collect all 3 keys to reach the cat.",sky:"#001427",ground:"#14213d",spawn:{x:0,y:2,z:12,ry:0},cat:{x:0,y:1.8,z:-15},platforms:[P(0,3,.5,10,9),P(-8,-6,1.7,2,2),P(8,-6,1.7,2,2),P(0,-8.5,.9,2,2,.6),P(0,-11.5,1.9,2,2),P(0,-15,.5,5,3.4)],keys:[{x:-8,z:-6,y:3},{x:8,z:-6,y:3},{x:0,z:-11.5,y:3.1}]},
+ {name:"Gap Jumper",doubleJump:true,objective:"Double Jump enabled! Press Space mid-air to clear wide gaps.",sky:"#1a001a",ground:"#2d002d",spawn:{x:0,y:2,z:12,ry:0},cat:{x:0,y:2,z:-22},platforms:[P(0,12,.5,4,4),P(0,5,1,2,2),P(0,-2,1.5,2,2),P(0,-10,2,2,2),P(0,-17,2,2,2),P(0,-22,2,3,3)]},
+ {name:"Spiral Climb",objective:"Spiral upwards around the central tower.",sky:"#0f172a",ground:"#1e293b",spawn:{x:0,y:2,z:12,ry:0},cat:{x:0,y:12,z:0},platforms:[P(0,12,.5,4,4),P(5,8,2,2,2),P(8,2,3.5,2,2),P(5,-4,5,2,2),P(0,-7,6.5,2,2),P(-5,-4,8,2,2),P(-8,2,9.5,2,2),P(0,0,11.5,3,3)]},
+ {name:"Twin Switches",objective:"Activate both switches to extend the cat path.",sky:"#2b1000",ground:"#4a1c00",spawn:{x:0,y:2,z:14,ry:0},cat:{x:0,y:2,z:-18},platforms:[P(0,14,.5,5,3),P(-7,6,1,2,2),P(7,6,1,2,2),P(0,-18,2,4,3)],plates:[{x:-7,z:6},{x:7,z:6}],bridge:P(0,-4,1,2,10,.5)},
+ {name:"Key Zig-Zag",objective:"Collect 3 keys along a winding ledge.",sky:"#022c22",ground:"#064e3b",spawn:{x:0,y:2,z:14,ry:0},cat:{x:0,y:5,z:-18},platforms:[P(0,14,.5,4,3),P(-6,8,1.5,1.8,1.8),P(0,2,2.5,1.8,1.8),P(6,-4,3.5,1.8,1.8),P(0,-10,4.5,1.8,1.8),P(0,-18,5,3,3)],keys:[{x:-6,z:8,y:2.5},{x:6,z:-4,y:4.5},{x:0,z:-10,y:5.5}]},
+ {name:"Narrow Beams",objective:"Watch your step on thin platforms.",sky:"#172554",ground:"#1e3a8a",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:3,z:-18},platforms:[P(0,15,.5,3,3),P(0,8,1,1.2,3),P(0,1,1.5,1.2,3),P(0,-6,2,1.2,3),P(0,-12,2.5,1.2,3),P(0,-18,3,3,3)]},
+ {name:"High Stacks",objective:"Ascend lower, wider pillars to reach the kitten.",sky:"#311042",ground:"#4a1864",spawn:{x:0,y:2,z:12,ry:0},cat:{x:0,y:7.5,z:-12},platforms:[P(0,12,.5,4,4),P(-3,6,2,2.5,2.5),P(3,0,3.8,2.5,2.5),P(-3,-6,5.5,2.5,2.5),P(0,-12,7,3,3)]},
+ {name:"The Split Path",objective:"Divide and conquer to reach the kitten.",sky:"#111827",ground:"#1f2937",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:4,z:-18},platforms:[P(0,15,.5,5,3),P(-8,6,2,2,2),P(8,6,2,2,2),P(-8,-4,3,2,2),P(8,-4,3,2,2),P(0,-18,4,4,3)],plates:[{x:-8,z:6},{x:8,z:6}],bridge:P(0,-11,2,2,5,.5)},
+ {name:"Vaulting Towers",doubleJump:true,objective:"Double Jump enabled! Vault across distant floating towers.",sky:"#1e1b4b",ground:"#312e81",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:6,z:-22},platforms:[P(0,16,.5,3,3),P(0,6,2,1.5,1.5),P(0,-3,3.5,1.5,1.5),P(0,-12,5,1.5,1.5),P(0,-22,6,3,3)]},
+ {name:"Key Gauntlet",objective:"Find 4 scattered keys across floating islands.",sky:"#064e3b",ground:"#022c22",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:3,z:-20},platforms:[P(0,16,.5,4,3),P(-9,10,2,1.8,1.8),P(9,10,2,1.8,1.8),P(-9,-4,3,1.8,1.8),P(9,-4,3,1.8,1.8),P(0,-20,3,4,3)],keys:[{x:-9,z:10,y:3},{x:9,z:10,y:3},{x:-9,z:-4,y:4},{x:9,z:-4,y:4}]},
+ {name:"Sky Staircase",objective:"Climb a steep, narrow staircase into the sky.",sky:"#0284c7",ground:"#0369a1",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:18,z:-16},platforms:[P(0,16,.5,3,3),P(0,12,3,1.5,1.5),P(0,8,6,1.5,1.5),P(0,4,9,1.5,1.5),P(0,0,12,1.5,1.5),P(0,-8,15,1.5,1.5),P(0,-16,17.5,3,3)]},
+ {name:"Quad Switch Ramp",objective:"Hit switches on all 4 corners to unlock the bridge.",sky:"#4c1d95",ground:"#5b21b6",spawn:{x:0,y:2,z:18,ry:0},cat:{x:0,y:3,z:-20},platforms:[P(0,18,.5,5,3),P(-10,10,2,2,2),P(10,10,2,2,2),P(-10,-5,3,2,2),P(10,-5,3,2,2),P(0,-20,3,4,3)],plates:[{x:-10,z:10},{x:10,z:10},{x:-10,z:-5},{x:10,z:-5}],bridge:P(0,-8,2,2,8,.5)},
+ {name:"Precision Ledges",objective:"Very small platforms with high fall penalty.",sky:"#1e293b",ground:"#0f172a",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:7,z:-16},platforms:[P(0,16,.5,2.5,2.5),P(0,10,2,1.2,1.2),P(0,3,3.5,1.2,1.2),P(0,-4,5,1.2,1.2),P(0,-10,6.5,1.2,1.2),P(0,-16,7,2.5,2.5)]},
+ {name:"The Maze Labyrinth",objective:"Navigate narrow branching paths to find 3 keys.",sky:"#3f6212",ground:"#1a2e05",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:4,z:-22},platforms:[P(0,16,.5,4,3),P(-7,10,1.5,2,2),P(0,10,1.5,2,2),P(7,10,1.5,2,2),P(-7,0,2.5,2,2),P(7,0,2.5,2,2),P(-7,-10,3.5,2,2),P(7,-10,3.5,2,2),P(0,-22,4,4,3)],keys:[{x:-7,z:10,y:2.5},{x:7,z:10,y:2.5},{x:0,z:10,y:2.5}]},
+ {name:"Tower of Heights",objective:"Extreme vertical climb with tiny perches.",sky:"#581c87",ground:"#3b0764",spawn:{x:0,y:2,z:14,ry:0},cat:{x:0,y:22,z:0},platforms:[P(0,14,.5,3,3),P(4,10,4,1.4,1.4),P(6,4,8,1.4,1.4),P(4,-2,12,1.4,1.4),P(-2,-4,16,1.4,1.4),P(-6,2,20,1.4,1.4),P(0,0,21.5,2.5,2.5)]},
+ {name:"The Grand Switchyard",objective:"Step on distant plates to construct the final path.",sky:"#831843",ground:"#500724",spawn:{x:0,y:2,z:20,ry:0},cat:{x:0,y:4,z:-22},platforms:[P(0,20,.5,4,3),P(-12,10,2,2,2),P(12,10,2,2,2),P(0,-22,4,4,3)],plates:[{x:-12,z:10},{x:12,z:10}],bridge:P(0,-1,2,2,16,.5)},
+ {name:"Master Rescue",doubleJump:true,objective:"Double Jump enabled! The ultimate challenge across massive chasms.",sky:"#0f172a",ground:"#020617",spawn:{x:0,y:2,z:22,ry:0},cat:{x:0,y:12,z:-26},platforms:[P(0,22,.5,3,3),P(-6,15,2.5,1.2,1.2),P(6,8,4.5,1.2,1.2),P(-6,0,6.5,1.2,1.2),P(6,-8,8.5,1.2,1.2),P(-6,-16,10.5,1.2,1.2),P(0,-26,12,3,3)]},
+ {name:"Neon Horizon",objective:"Navigate neon floating strips over the abyss.",sky:"#050515",ground:"#101030",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:6,z:-20},platforms:[P(0,15,.5,3,3),P(-5,10,2,1.5,3),P(5,5,3,1.5,3),P(-5,0,4,1.5,3),P(5,-5,5,1.5,3),P(0,-20,6,3,3)]},
+ {name:"Floating Stepping Stones",doubleJump:true,objective:"Double Jump required to bound across staggered floating blocks.",sky:"#030712",ground:"#1e1b4b",spawn:{x:0,y:2,z:18,ry:0},cat:{x:0,y:10,z:-25},platforms:[P(0,18,.5,3,3),P(4,12,2,1,1),P(-4,6,4,1,1),P(4,0,6,1,1),P(-4,-8,8,1,1),P(0,-25,10,3,3)]},
+ {name:"Crystal Maze Keys",objective:"Collect 4 crystalline keys within a tight grid.",sky:"#022c22",ground:"#064e3b",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:5,z:-20},platforms:[P(0,16,.5,5,4),P(-6,8,2,1.5,1.5),P(6,8,2,1.5,1.5),P(-6,-4,3,1.5,1.5),P(6,-4,3,1.5,1.5),P(0,-20,4,4,4)],keys:[{x:-6,z:8,y:3},{x:6,z:8,y:3},{x:-6,z:-4,y:4},{x:6,z:-4,y:4}]},
+ {name:"Vertical Ascent",objective:"Climb a massive vertical column using tiny ledges.",sky:"#2e1065",ground:"#3b0764",spawn:{x:0,y:2,z:10,ry:0},cat:{x:0,y:25,z:0},platforms:[P(0,10,.5,3,3),P(3,6,5,1.2,1.2),P(-3,2,9,1.2,1.2),P(3,-2,13,1.2,1.2),P(-3,-6,17,1.2,1.2),P(3,-10,21,1.2,1.2),P(0,0,24.5,2.5,2.5)]},
+ {name:"Switch Matrix",objective:"Trigger 3 floor plates in sequence to activate the path.",sky:"#451a03",ground:"#78350f",spawn:{x:0,y:2,z:18,ry:0},cat:{x:0,y:4,z:-22},platforms:[P(0,18,.5,4,4),P(-8,10,1,1.8,1.8),P(8,10,1,1.8,1.8),P(0,0,2,1.8,1.8),P(0,-22,4,3,3)],plates:[{x:-8,z:10},{x:8,z:10},{x:0,z:0}],bridge:P(0,-11,2.5,2.5,12,.5)},
+ {name:"Abyssal Leap",doubleJump:true,objective:"Double Jump mastery across massive floating platforms.",sky:"#09090b",ground:"#27272a",spawn:{x:0,y:2,z:20,ry:0},cat:{x:0,y:8,z:-28},platforms:[P(0,20,.5,3,3),P(0,10,3,1.5,1.5),P(0,0,6,1.5,1.5),P(0,-10,9,1.5,1.5),P(0,-28,12,3,3)]},
+ {name:"The Star Cluster",objective:"Find all 5 hidden star keys across floating platforms.",sky:"#1e1b4b",ground:"#312e81",spawn:{x:0,y:2,z:18,ry:0},cat:{x:0,y:5,z:-22},platforms:[P(0,18,.5,5,4),P(-8,10,2,1.5,1.5),P(8,10,2,1.5,1.5),P(-8,-6,3,1.5,1.5),P(8,-6,3,1.5,1.5),P(0,2,2.5,1.5,1.5),P(0,-22,4,4,4)],keys:[{x:-8,z:10,y:3},{x:8,z:10,y:3},{x:-8,z:-6,y:4},{x:8,z:-6,y:4},{x:0,z:2,y:3.5}]},
+ {name:"Cloudway Spire",objective:"Ascend the winding cloud-top spiral tower.",sky:"#0284c7",ground:"#0369a1",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:20,z:0},platforms:[P(0,15,.5,4,4),P(6,10,3,1.5,1.5),P(0,5,6,1.5,1.5),P(-6,0,9,1.5,1.5),P(0,-5,12,1.5,1.5),P(6,-10,15,1.5,1.5),P(0,0,19,3,3)]},
+ {name:"Dual Switch Run",objective:"Hit both switches quickly to unlock the final bridge.",sky:"#831843",ground:"#500724",spawn:{x:0,y:2,z:20,ry:0},cat:{x:0,y:4,z:-25},platforms:[P(0,20,.5,5,4),P(-10,10,1,2,2),P(10,10,1,2,2),P(0,-25,4,4,4)],plates:[{x:-10,z:10},{x:10,z:10}],bridge:P(0,-7.5,2,2,15,.5)},
+ {name:"Ultimate Rescue",doubleJump:true,objective:"Double Jump enabled! Complete the ultimate 30th trial.",sky:"#000000",ground:"#0f172a",spawn:{x:0,y:2,z:25,ry:0},cat:{x:0,y:15,z:-30},platforms:[P(0,25,.5,3,3),P(-8,15,3,1.2,1.2),P(8,8,6,1.2,1.2),P(-8,0,9,1.2,1.2),P(8,-8,12,1.2,1.2),P(-8,-18,14,1.2,1.2),P(0,-30,16,4,4)]},
+
+ // --- 60 Additional Added Levels (Levels 31 to 90) ---
+ {name:"Starlight Path",objective:"Cross the starlit bridge to find the kitten.",sky:"#0a0a23",ground:"#1b1b3a",spawn:{x:0,y:2,z:10,ry:0},cat:{x:0,y:3,z:-15},platforms:[P(0,0,.5,8,8),P(0,-7,1.5,3,3),P(0,-15,3,4,4)]},
+ {name:"Bouncing Boards",doubleJump:true,objective:"Use double jumps across bouncy boards.",sky:"#141432",ground:"#28285a",spawn:{x:0,y:2,z:12,ry:0},cat:{x:0,y:5,z:-20},platforms:[P(0,12,.5,4,4),P(0,6,2,2,2),P(0,0,3,2,2),P(0,-6,4,2,2),P(0,-20,5,3,3)]},
+ {name:"Amber Cavern",objective:"Navigate the amber cavern platforms.",sky:"#2b1700",ground:"#542e00",spawn:{x:0,y:2,z:12,ry:0},cat:{x:0,y:4,z:-18},platforms:[P(0,12,.5,6,5),P(-4,4,2,2,2),P(4,-2,3,2,2),P(0,-18,4,4,4)]},
+ {name:"Emerald Perch",objective:"Reach the emerald high ground.",sky:"#002b17",ground:"#00542e",spawn:{x:0,y:2,z:14,ry:0},cat:{x:0,y:6,z:-16},platforms:[P(0,14,.5,5,5),P(0,8,2,2,2),P(0,2,4,2,2),P(0,-16,5,3,3)]},
+ {name:"Sapphire Steps",objective:"Ascend the sapphire platform sequence.",sky:"#001a2b",ground:"#003354",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:7,z:-20},platforms:[P(0,15,.5,4,4),P(3,8,2,1.5,3),P(-3,2,4,1.5,3),P(0,-20,5,3,3)]},
+ {name:"Ruby Reach",objective:"Grab keys across ruby red islands.",sky:"#2b000a",ground:"#540014",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:4,z:-22},platforms:[P(0,16,.5,5,4),P(-5,8,2,2,2),P(5,0,3,2,2),P(0,-22,4,4,3)],keys:[{x:-5,z:8,y:3},{x:5,z:0,y:4}]},
+ {name:"Amethyst Ascent",objective:"Climb the amethyst pillars.",sky:"#1a002b",ground:"#330054",spawn:{x:0,y:2,z:12,ry:0},cat:{x:0,y:14,z:0},platforms:[P(0,12,.5,4,4),P(4,8,3,1.5,1.5),P(-4,2,6,1.5,1.5),P(0,-4,9,1.5,1.5),P(0,0,12,3,3)]},
+ {name:"Golden Gateway",objective:"Trigger plates to open the golden gateway.",sky:"#2b2200",ground:"#544400",spawn:{x:0,y:2,z:18,ry:0},cat:{x:0,y:4,z:-20},platforms:[P(0,18,.5,5,4),P(-6,8,1,2,2),P(6,8,1,2,2),P(0,-20,3,4,4)],plates:[{x:-6,z:8},{x:6,z:8}],bridge:P(0,-6,2,2,10,.5)},
+ {name:"Silver Skyway",objective:"Walk the silver skyway carefully.",sky:"#1e1e1e",ground:"#3c3c3c",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:3,z:-18},platforms:[P(0,15,.5,3,3),P(0,9,1.5,1.2,4),P(0,2,2.5,1.2,4),P(0,-18,3.5,3,3)]},
+ {name:"Twilight Trail",objective:"Traverse the twilight path.",sky:"#1a0f2b",ground:"#351f54",spawn:{x:0,y:2,z:14,ry:0},cat:{x:0,y:5,z:-18},platforms:[P(0,14,.5,4,4),P(-4,6,2,2,2),P(4,0,3,2,2),P(0,-18,4,3,3)]},
+ {name:"Midnight Maze",objective:"Find the keys hidden in the midnight maze.",sky:"#050510",ground:"#0f0f20",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:4,z:-22},platforms:[P(0,16,.5,5,5),P(-6,8,2,2,2),P(6,8,2,2,2),P(0,0,3,2,2),P(0,-22,4,4,4)],keys:[{x:-6,z:8,y:3},{x:6,z:8,y:3},{x:0,z:0,y:4}]},
+ {name:"Solar Flare",doubleJump:true,objective:"Double jump through solar flare obstacles.",sky:"#2b0f00",ground:"#541f00",spawn:{x:0,y:2,z:20,ry:0},cat:{x:0,y:10,z:-25},platforms:[P(0,20,.5,3,3),P(0,12,3,1.5,1.5),P(0,4,6,1.5,1.5),P(0,-4,9,1.5,1.5),P(0,-25,12,3,3)]},
+ {name:"Lunar Ledge",objective:"Jump across lunar crater ledges.",sky:"#0a0a14",ground:"#141428",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:6,z:-20},platforms:[P(0,15,.5,4,4),P(4,8,2,1.8,1.8),P(-4,2,3.5,1.8,1.8),P(0,-20,5,3,3)]},
+ {name:"Nebula Nook",objective:"Explore the nebula nook for keys.",sky:"#100520",ground:"#200a40",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:4,z:-20},platforms:[P(0,16,.5,4,4),P(-5,8,2,2,2),P(5,0,3,2,2),P(0,-20,4,4,4)],keys:[{x:-5,z:8,y:3},{x:5,z:0,y:4}]},
+ {name:"Comet Crossing",objective:"Cross the comet path quickly.",sky:"#001020",ground:"#002040",spawn:{x:0,y:2,z:18,ry:0},cat:{x:0,y:5,z:-22},platforms:[P(0,18,.5,4,4),P(0,10,2,1.5,3),P(0,2,3.5,1.5,3),P(0,-22,5,3,3)]},
+ {name:"Asteroid Alley",doubleJump:true,objective:"Double jump over asteroid debris.",sky:"#080808",ground:"#1c1c1c",spawn:{x:0,y:2,z:20,ry:0},cat:{x:0,y:8,z:-25},platforms:[P(0,20,.5,3,3),P(-5,12,2,1.2,1.2),P(5,4,4,1.2,1.2),P(-5,-4,6,1.2,1.2),P(0,-25,8,3,3)]},
+ {name:"Galaxy Gateway",objective:"Activate both switches to bridge the galaxy.",sky:"#15002b",ground:"#2b0054",spawn:{x:0,y:2,z:20,ry:0},cat:{x:0,y:4,z:-24},platforms:[P(0,20,.5,5,4),P(-8,10,1,2,2),P(8,10,1,2,2),P(0,-24,4,4,4)],plates:[{x:-8,z:10},{x:8,z:10}],bridge:P(0,-7,2,2,14,.5)},
+ {name:"Supernova Step",objective:"Reach the supernova summit.",sky:"#2b0015",ground:"#54002b",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:12,z:0},platforms:[P(0,15,.5,4,4),P(4,10,3,1.5,1.5),P(-4,5,6,1.5,1.5),P(0,0,9,3,3)]},
+ {name:"Orbit Oasis",objective:"Find keys in the orbit oasis.",sky:"#002b2b",ground:"#005454",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:4,z:-20},platforms:[P(0,16,.5,5,4),P(-6,8,2,2,2),P(6,8,2,2,2),P(0,-20,4,4,4)],keys:[{x:-6,z:8,y:3},{x:6,z:8,y:3}]},
+ {name:"Zenith Zone",doubleJump:true,objective:"Double jump into the zenith zone.",sky:"#00002b",ground:"#000054",spawn:{x:0,y:2,z:22,ry:0},cat:{x:0,y:10,z:-28},platforms:[P(0,22,.5,3,3),P(0,12,3,1.5,1.5),P(0,2,6,1.5,1.5),P(0,-28,9,3,3)]},
+ {name:"Echoing Vault",objective:"Navigate the echoing vault platforms.",sky:"#111a2e",ground:"#1f305e",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:5,z:-20},platforms:[P(0,15,.5,4,4),P(-4,8,2,2,2),P(4,2,3,2,2),P(0,-20,4,3,3)]},
+ {name:"Shadow Step",doubleJump:true,objective:"Double jump across shadow gaps.",sky:"#0d0d0d",ground:"#1a1a1a",spawn:{x:0,y:2,z:18,ry:0},cat:{x:0,y:8,z:-25},platforms:[P(0,18,.5,3,3),P(0,10,2,1.5,1.5),P(0,2,4,1.5,1.5),P(0,-25,6,3,3)]},
+ {name:"Crimson Keep",objective:"Unlock the crimson keep with keys.",sky:"#330000",ground:"#660000",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:4,z:-20},platforms:[P(0,16,.5,5,4),P(-6,8,2,2,2),P(6,8,2,2,2),P(0,-20,4,4,4)],keys:[{x:-6,z:8,y:3},{x:6,z:8,y:3}]},
+ {name:"Azure Archive",objective:"Climb the azure archive towers.",sky:"#001a33",ground:"#003366",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:12,z:0},platforms:[P(0,15,.5,4,4),P(4,10,3,1.5,1.5),P(-4,5,6,1.5,1.5),P(0,0,9,3,3)]},
+ {name:"Verdant Valley",objective:"Traverse the verdant valley platforms.",sky:"#003300",ground:"#006600",spawn:{x:0,y:2,z:14,ry:0},cat:{x:0,y:4,z:-18},platforms:[P(0,14,.5,5,5),P(-5,6,2,2,2),P(5,0,3,2,2),P(0,-18,4,4,4)]},
+ {name:"Gilded Gallery",objective:"Trigger plates in the gilded gallery.",sky:"#332b00",ground:"#665400",spawn:{x:0,y:2,z:18,ry:0},cat:{x:0,y:4,z:-22},platforms:[P(0,18,.5,5,4),P(-8,10,1,2,2),P(8,10,1,2,2),P(0,-22,4,4,4)],plates:[{x:-8,z:10},{x:8,z:10}],bridge:P(0,-6,2,2,12,.5)},
+ {name:"Obsidian Overpass",doubleJump:true,objective:"Double jump over obsidian chasms.",sky:"#121212",ground:"#242424",spawn:{x:0,y:2,z:20,ry:0},cat:{x:0,y:9,z:-26},platforms:[P(0,20,.5,3,3),P(0,12,3,1.5,1.5),P(0,4,6,1.5,1.5),P(0,-26,9,3,3)]},
+ {name:"Frostbite Fall",objective:"Cross the frosty platforms carefully.",sky:"#002b36",ground:"#073642",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:4,z:-18},platforms:[P(0,15,.5,4,4),P(-4,8,2,2,2),P(4,2,3,2,2),P(0,-18,4,3,3)]},
+ {name:"Solar Sanctuary",objective:"Find keys in the solar sanctuary.",sky:"#331a00",ground:"#663300",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:4,z:-20},platforms:[P(0,16,.5,5,4),P(-6,8,2,2,2),P(6,8,2,2,2),P(0,-20,4,4,4)],keys:[{x:-6,z:8,y:3},{x:6,z:8,y:3}]},
+ {name:"Mystic Mountain",doubleJump:true,objective:"Double jump up mystic mountain.",sky:"#1a0033",ground:"#330066",spawn:{x:0,y:2,z:22,ry:0},cat:{x:0,y:14,z:-30},platforms:[P(0,22,.5,3,3),P(-5,14,3,1.2,1.2),P(5,6,6,1.2,1.2),P(0,-30,9,3,3)]},
+ {name:"Echo Ridge",objective:"Navigate the echo ridge platforms.",sky:"#0b1a2e",ground:"#16355e",spawn:{x:0,y:2,z:14,ry:0},cat:{x:0,y:5,z:-18},platforms:[P(0,14,.5,4,4),P(-4,6,2,2,2),P(4,0,3,2,2),P(0,-18,4,3,3)]},
+ {name:"Crystal Cavern",objective:"Collect crystal keys in the cavern.",sky:"#002b22",ground:"#005444",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:4,z:-20},platforms:[P(0,16,.5,5,4),P(-6,8,2,2,2),P(6,8,2,2,2),P(0,-20,4,4,4)],keys:[{x:-6,z:8,y:3},{x:6,z:8,y:3}]},
+ {name:"Prismatic Path",doubleJump:true,objective:"Double jump along the prismatic path.",sky:"#2b002b",ground:"#540054",spawn:{x:0,y:2,z:20,ry:0},cat:{x:0,y:8,z:-26},platforms:[P(0,20,.5,3,3),P(0,12,3,1.5,1.5),P(0,4,6,1.5,1.5),P(0,-26,9,3,3)]},
+ {name:"Radiant Rise",objective:"Climb the radiant rise tower.",sky:"#2b2b00",ground:"#545400",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:12,z:0},platforms:[P(0,15,.5,4,4),P(4,10,3,1.5,1.5),P(-4,5,6,1.5,1.5),P(0,0,9,3,3)]},
+ {name:"Titan Tower",objective:"Scale titan tower via narrow ledges.",sky:"#111111",ground:"#222222",spawn:{x:0,y:2,z:14,ry:0},cat:{x:0,y:16,z:0},platforms:[P(0,14,.5,4,4),P(3,10,4,1.2,1.2),P(-3,4,8,1.2,1.2),P(0,0,12,3,3)]},
+ {name:"Nebula Network",objective:"Activate network switches to bridge the gap.",sky:"#1a0033",ground:"#330066",spawn:{x:0,y:2,z:18,ry:0},cat:{x:0,y:4,z:-22},platforms:[P(0,18,.5,5,4),P(-8,10,1,2,2),P(8,10,1,2,2),P(0,-22,4,4,4)],plates:[{x:-8,z:10},{x:8,z:10}],bridge:P(0,-6,2,2,12,.5)},
+ {name:"Stellar Spire",doubleJump:true,objective:"Double jump up the stellar spire.",sky:"#000a14",ground:"#001428",spawn:{x:0,y:2,z:22,ry:0},cat:{x:0,y:15,z:-30},platforms:[P(0,22,.5,3,3),P(0,14,4,1.2,1.2),P(0,6,8,1.2,1.2),P(0,-30,12,4,4)]},
+ {name:"Plasma Platform",objective:"Navigate plasma platforms for keys.",sky:"#2b001a",ground:"#540033",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:4,z:-20},platforms:[P(0,16,.5,5,4),P(-6,8,2,2,2),P(6,8,2,2,2),P(0,-20,4,4,4)],keys:[{x:-6,z:8,y:3},{x:6,z:8,y:3}]},
+ {name:"Quantum Quarters",objective:"Traverse quantum quarter tiles.",sky:"#002b1a",ground:"#005433",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:5,z:-20},platforms:[P(0,15,.5,4,4),P(-4,8,2,2,2),P(4,2,3,2,2),P(0,-20,4,3,3)]},
+ {name:"Infinity Isle",doubleJump:true,objective:"Double jump across infinity isle.",sky:"#050505",ground:"#111111",spawn:{x:0,y:2,z:24,ry:0},cat:{x:0,y:10,z:-32},platforms:[P(0,24,.5,3,3),P(0,14,3,1.5,1.5),P(0,4,7,1.5,1.5),P(0,-32,10,3,3)]},
+ {name:"Aether Archway",objective:"Cross the aether archway.",sky:"#1a1a2e",ground:"#2e2e4f",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:5,z:-18},platforms:[P(0,15,.5,4,4),P(-4,8,2,2,2),P(4,2,3,2,2),P(0,-18,4,3,3)]},
+ {name:"Supercluster Steps",objective:"Ascend supercluster step platforms.",sky:"#0f0f1a",ground:"#1f1f33",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:6,z:-20},platforms:[P(0,16,.5,4,4),P(3,10,2,1.5,3),P(-3,4,3.5,1.5,3),P(0,-20,5,3,3)]},
+ {name:"Pulsar Peak",doubleJump:true,objective:"Double jump to pulsar peak.",sky:"#2b1a00",ground:"#543300",spawn:{x:0,y:2,z:20,ry:0},cat:{x:0,y:12,z:-26},platforms:[P(0,20,.5,3,3),P(0,12,3,1.5,1.5),P(0,4,6,1.5,1.5),P(0,-26,9,3,3)]},
+ {name:"Event Horizon",objective:"Reach the cat at event horizon.",sky:"#000000",ground:"#0a0a0a",spawn:{x:0,y:2,z:25,ry:0},cat:{x:0,y:15,z:-35},platforms:[P(0,25,.5,3,3),P(-6,15,3,1.2,1.2),P(6,8,7,1.2,1.2),P(0,-35,12,4,4)]},
+ {name:"Gravity Gap",doubleJump:true,objective:"Double jump across gravity gaps.",sky:"#100010",ground:"#200020",spawn:{x:0,y:2,z:18,ry:0},cat:{x:0,y:8,z:-22},platforms:[P(0,18,.5,4,4),P(0,10,2,1.5,2),P(0,2,4,1.5,2),P(0,-22,5,3,3)]},
+ {name:"Singularity Spire",objective:"Climb singularity spire.",sky:"#050010",ground:"#0a0020",spawn:{x:0,y:2,z:15,ry:0},cat:{x:0,y:18,z:0},platforms:[P(0,15,.5,4,4),P(4,11,3,1.3,1.3),P(-4,6,7,1.3,1.3),P(0,0,12,3,3)]},
+ {name:"Void Vista",objective:"Find keys in the void vista.",sky:"#080808",ground:"#151515",spawn:{x:0,y:2,z:16,ry:0},cat:{x:0,y:4,z:-20},platforms:[P(0,16,.5,5,4),P(-6,8,2,2,2),P(6,8,2,2,2),P(0,-20,4,4,4)],keys:[{x:-6,z:8,y:3},{x:6,z:8,y:3}]},
+ {name:"Last Stand",doubleJump:true,objective:"The final test: double jump to victory!",sky:"#000000",ground:"#111827",spawn:{x:0,y:2,z:25,ry:0},cat:{x:0,y:16,z:-35},platforms:[P(0,25,.5,3,3),P(-8,16,3,1.2,1.2),P(8,10,7,1.2,1.2),P(-8,4,11,1.2,1.2),P(0,-35,15,4,4)]}
+];
+
+function resetState(i){
+ const l=LEVELS[i],s={catSaved:false};
+ if(l.plates){s.plates=new Array(l.plates.length).fill(false);s.bridge=false}
+ if(l.keys)s.keys=new Array(l.keys.length).fill(false);
+ return s;
+}
+
+const Net={
+ send(c,d){try{if(c&&c.open)c.send(d)}catch(e){}},
+ hostCreate(){
+  return new Promise((resolve,reject)=>{
+   let tries=0;
+   const attempt=()=>{
+    tries++;
+    const code=codeGen(),id=PREFIX+code.toLowerCase();
+    let peer;
+    try{
+      peer=new Peer(id,{config:{iceServers:ICE_SERVERS},debug:1});
+    }catch(e){reject(e);return}
+    
+    let done=false;
+    const timeout = setTimeout(()=>{
+      if(!done){try{peer.destroy()}catch(x){}; reject(new Error("Timeout creating lobby"));}
+    }, 10000);
+
+    peer.on("open",()=>{
+     clearTimeout(timeout);
+     done=true;G.peer=peer;G.isHost=true;G.myId=id;G.code=code;
+     G.players.set(id,{id,name:G.name,color:G.color,host:true});
+     peer.on("connection",c=>Net.hostConnection(c));
+     resolve(code);
+    });
+    peer.on("error",e=>{
+     if(!done && e.type==="unavailable-id" && tries<5){
+      clearTimeout(timeout);try{peer.destroy()}catch(x){};attempt();
+     } else if(!done){
+      clearTimeout(timeout);reject(e);
+     }
+    });
+   };
+   attempt();
+  })
+ },
+ hostConnection(c){
+  c.on("data",d=>Net.hostData(c,d));
+  c.on("close",()=>{
+   G.players.delete(c.peer);G.conns.delete(c.peer);G.remote.delete(c.peer);
+   if(Engine.remoteMeshes.has(c.peer)){
+     Engine.scene.remove(Engine.remoteMeshes.get(c.peer));
+     Engine.remoteMeshes.delete(c.peer);
+   }
+   Net.broadcastRoster();
+  });
+ },
+ hostData(c,d){
+  if(!d||!d.t)return;
+  if(d.t==="join"){
+   if(G.players.size>=MAX){Net.send(c,{t:"reject",reason:"full"});setTimeout(()=>c.close(),200);return}
+   const name=(d.name||"Rescuer").slice(0,14),color=d.color||COLORS[G.players.size%COLORS.length];
+   G.players.set(c.peer,{id:c.peer,name,color,host:false});G.conns.set(c.peer,c);
+   G.remote.set(c.peer,{x:0,y:2,z:0,ry:0});
+   Net.broadcastRoster();
+   Net.send(c,{t:"welcome",level:G.level,status:G.status,state:G.levelState});
+  }else if(d.t==="pos"){
+   const p=G.remote.get(c.peer);
+   if(p){p.x=d.x;p.y=d.y;p.z=d.z;p.ry=d.ry}
+  }
+ },
+ broadcastRoster(){
+  const list=[...G.players.values()];
+  const d={t:"roster",players:list,code:G.code};
+  G.conns.forEach(c=>Net.send(c,d));UI.roster();
+ },
+ broadcastStart(){G.conns.forEach(c=>Net.send(c,{t:"start",level:G.level,state:G.levelState}))},
+ broadcastState(){
+  const positions={};
+  const me=Engine.player;
+  positions[G.myId]={x:me.x,y:me.y,z:me.z,ry:me.ry};
+  G.remote.forEach((p,id)=>positions[id]=p);
+  const d={t:"state",positions,level:G.level,status:G.status,state:G.levelState};
+  G.conns.forEach(c=>Net.send(c,d));
+ },
+ broadcastNext(){G.conns.forEach(c=>Net.send(c,{t:"next",level:G.level,finished:G.status==="finished"}))},
+ guestJoin(code){
+  return new Promise((resolve,reject)=>{
+   const peer=new Peer(undefined,{config:{iceServers:ICE_SERVERS},debug:1});
+   let settled=false;
+   const fail=e=>{if(!settled){settled=true;reject(e)}};
+   peer.on("open",id=>{
+    G.peer=peer;G.myId=id;G.isHost=false;G.code=code;
+    const c=peer.connect(PREFIX+code.toLowerCase(),{reliable:true});G.conn=c;
+    const timer=setTimeout(()=>fail(new Error("Connection timed out")),10000);
+    c.on("open",()=>Net.send(c,{t:"join",name:G.name,color:G.color}));
+    c.on("data",d=>{if(d.t==="roster"){clearTimeout(timer);if(!settled){settled=true;resolve(d)}}Net.guestData(d)});
+    c.on("close",()=>{if(G.started)$("disconnect").classList.add("show")});
+    c.on("error",fail);
+   });
+   peer.on("error",fail);
+  })
+ },
+ guestData(d){
+  if(!d||!d.t)return;
+  if(d.t==="reject"){msg($("menuMsg"),d.reason==="full"?"Lobby is full[cite: 2].":"Join rejected.");return}
+  if(d.t==="roster"){G.players=new Map(d.players.map(p=>[p.id,p]));UI.roster()}
+  if(d.t==="welcome"){G.level=d.level;G.status=d.status;G.levelState=d.state||resetState(G.level)}
+  if(d.t==="start"){G.level=d.level;G.levelState=d.state;G.status="playing";Engine.startLevel(G.level);UI.hideOverlays()}
+  if(d.t==="state"){
+   Object.entries(d.positions||{}).forEach(([id,p])=>{if(id!==G.myId)G.remote.set(id,p)});
+   G.level=d.level;G.status=d.status;G.levelState=d.state||G.levelState;Engine.applyRemoteState()
+  }
+  if(d.t==="next"){G.level=d.level;G.status=d.finished?"finished":"playing";if(G.status==="finished")$("final").classList.add("show");else{Engine.startLevel(G.level);UI.hideOverlays()}}
+ },
+ guestPos(){
+  const p=Engine.player;Net.send(G.conn,{t:"pos",x:p.x,y:p.y,z:p.z,ry:p.ry})
+ },
+ teardown(){
+  try{if(G.netTimer)clearInterval(G.netTimer)}catch(e){}
+  try{G.conns.forEach(c=>c.close())}catch(e){}
+  try{if(G.conn)G.conn.close()}catch(e){}
+  try{if(G.peer)G.peer.destroy()}catch(e){}
+  Object.assign(G,{peer:null,conn:null,isHost:false,myId:null,code:null,started:false,status:"lobby"});
+  G.conns.clear();G.players.clear();G.remote.clear();
+ }
+};
+
+const UI={
+ roster(){
+  const a=[...G.players.values()];$("lobbyCode").textContent=G.code||"-----";
+  $("playerList").innerHTML=a.map(p=>`<div class="player"><span class="dot" style="background:${p.color}"></span><span class="pname">${escapeHtml(p.name)}</span>${p.host?'<span class="host">HOST</span>':''}</div>`).join("");
+  $("startBtn").style.display=G.isHost?"block":"none";$("guestWait").style.display=G.isHost?"none":"block";
+  $("playersHud").innerHTML=a.map(p=>`<div class="box chip"><span class="dot" style="display:inline-block;width:9px;height:9px;background:${p.color};margin-right:2px"></span>${escapeHtml(p.name)}</div>`).join("");
+ },
+ hideOverlays(){["victory","final","disconnect"].forEach(id=>$(id).classList.remove("show"))},
+ menu(){Net.teardown();screen("menu");UI.hideOverlays()}
+};
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+$("hostTab").onclick=()=>{$("hostTab").classList.add("active");$("joinTab").classList.remove("active");$("hostPanel").style.display="block";$("joinPanel").style.display="none"};
+$("joinTab").onclick=()=>{$("joinTab").classList.add("active");$("hostTab").classList.remove("active");$("hostPanel").style.display="none";$("joinPanel").style.display="block"};
+$("audioToggleBtn").onclick=()=>SoundFX.toggle();
+$("hostBtn").onclick=async()=>{
+ G.name=($("name").value.trim()||"Rescuer").slice(0,14);G.color=selectedColor;$("hostBtn").disabled=true;msg($("menuMsg"),"Creating lobby…",false);
+ try{
+  await Net.hostCreate();G.status="lobby";screen("lobby");UI.roster();
+ }catch(e){
+  msg($("menuMsg"),"Failed to create lobby. Try again.");
+  console.error(e);
+ }finally{
+  $("hostBtn").disabled=false;
+ }
+};
+$("joinBtn").onclick=async()=>{
+ G.name=($("name").value.trim()||"Rescuer").slice(0,14);G.color=selectedColor;const code=$("code").value.trim().toUpperCase();
+ if(code.length!==5){msg($("menuMsg"),"Enter 5-character code.");return}
+ $("joinBtn").disabled=true;msg($("menuMsg"),"Connecting…",false);
+ try{
+  await Net.guestJoin(code);screen("lobby");UI.roster();
+ }catch(e){
+  msg($("menuMsg"),"Could not reach room. Verify code.");
+  console.error(e);
+ }finally{
+  $("joinBtn").disabled=false;
+ }
+};
+$("startBtn").onclick=()=>{
+ if(!G.isHost)return;G.status="playing";G.level=0;G.levelState=resetState(0);G.started=true;Engine.startLevel(0);Net.broadcastStart()
+};
+$("leaveLobby").onclick=()=>UI.menu();
+$("leaveGame").onclick=()=>UI.menu();
+$("discBtn").onclick=()=>UI.menu();
+$("menuBtn").onclick=()=>UI.menu();
+$("nextBtn").onclick=()=>{
+ if(!G.isHost)return;
+ if(G.level<LEVELS.length-1){G.level++;G.levelState=resetState(G.level);G.status="playing";Engine.startLevel(G.level);$("victory").classList.remove("show");Net.broadcastNext()}
+ else{G.status="finished";$("final").classList.add("show");Net.broadcastNext()}
+};
+
+const Engine={
+ scene:null,camera:null,renderer:null,clock:null,gltfLoader:null,world:[],player:{x:0,y:2,z:10,ry:0,vy:0,onGround:false,canDoubleJump:false},keys:{},jumpPressed:false,yaw:0,pitch:0,mouse:false,remoteMeshes:new Map(),cat:null,bridge:null,plates:[],keyMeshes:[],
+ init(){
+  this.scene=new THREE.Scene();this.camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.05,500);
+  this.renderer=new THREE.WebGLRenderer({canvas:$("gamecanvas"),antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.setSize(innerWidth,innerHeight);
+  this.renderer.outputEncoding=THREE.sRGBEncoding;this.clock=new THREE.Clock();
+  this.gltfLoader=new THREE.GLTFLoader();
+  
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+  this.scene.add(hemi);
+  const sun=new THREE.DirectionalLight(0xffffff,1.4);sun.position.set(20,40,15);this.scene.add(sun);
+  
+  addEventListener("resize",()=>{this.camera.aspect=innerWidth/innerHeight;this.camera.updateMatrix();this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight)});
+  addEventListener("keydown",e=>{
+   if(!this.keys[e.code] && (e.code==="Space" || e.code==="ArrowUp")){
+     this.handleJumpInput();
+   }
+   this.keys[e.code]=true;
+   if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();
+  });
+  addEventListener("keyup",e=>this.keys[e.code]=false);
+  $("lock").onclick=()=>this.lock();$("gamecanvas").onclick=()=>this.lock();
+  document.addEventListener("mousemove",e=>{if(!this.mouse)return;this.yaw-=e.movementX*.0025;this.pitch=clamp(this.pitch-e.movementY*.0025,-1.35,1.35)});
+  document.addEventListener("pointerlockchange",()=>{this.mouse=document.pointerLockElement===$("gamecanvas");$("lock").style.display=this.mouse?"none":"flex"});
+  this.animate();
+ },
+ handleJumpInput(){
+  const p=this.player, l=LEVELS[G.level];
+  if(p.onGround){
+   p.vy=7.5;p.onGround=false;p.canDoubleJump=!!l.doubleJump;
+   SoundFX.playJump();
+  } else if(l.doubleJump && p.canDoubleJump){
+   p.vy=7.5;p.canDoubleJump=false;
+   SoundFX.playJump();
+  }
+ },
+ lock(){if($("game").classList.contains("active"))$("gamecanvas").requestPointerLock?.()},
+ clearWorld(){
+  this.world.forEach(o=>this.scene.remove(o));this.world=[];
+  this.remoteMeshes.forEach(o=>this.scene.remove(o));this.remoteMeshes.clear();
+  this.cat=null;this.bridge=null;this.plates=[];this.keyMeshes=[];
+ },
+ mat(c, roughness=0.4){return new THREE.MeshStandardMaterial({color:c,roughness:roughness})},
+ cube(x,y,z,sx,sy,sz,c){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),this.mat(c));m.position.set(x,y,z);this.scene.add(m);this.world.push(m);return m
+ },
+ startLevel(i){
+  G.started=true;G.status="playing";this.clearWorld();const l=LEVELS[i];
+  this.scene.background=new THREE.Color(l.sky);this.scene.fog=new THREE.Fog(l.sky,35,120);
+  
+  this.world.push(this.cube(0,-3,0,100,1,100,l.ground));
+  l.platforms.forEach(p=>this.cube(p.x,p.y-p.h/2,p.z,p.w*2,p.h,p.d*2,"#2b2d42"));
+  
+  if(l.bridge){
+    this.bridge=this.cube(l.bridge.x,l.bridge.y-.25,l.bridge.z,l.bridge.w*2,l.bridge.h,l.bridge.d*2,"#ffb703");
+    this.bridge.visible=!!G.levelState.bridge;
+  }
+  if(l.plates) {
+   l.plates.forEach((p,j)=>{
+    const plate = new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.6,0.3,16), this.mat("#06d6a0", 0.1));
+    plate.position.set(p.x, 1.15, p.z);
+    this.scene.add(plate); this.world.push(plate); this.plates.push(plate);
+   });
+  }
+  if(l.keys)l.keys.forEach((k,j)=>{
+   const q=new THREE.Mesh(new THREE.OctahedronGeometry(.5),this.mat("#ffb703", 0.1));
+   q.position.set(k.x,k.y,k.z);this.scene.add(q);this.world.push(q);q.userData.key=j;
+   this.keyMeshes.push(q);
+  });
+  
+  this.cat=this.makeCat(l.cat.x,l.cat.y,l.cat.z);
+  const sp=l.spawn;this.player={x:sp.x,y:sp.y,z:sp.z,ry:sp.ry,vy:0,onGround:false,canDoubleJump:false};this.yaw=sp.ry;this.pitch=0;
+  
+  $("levelBadge").textContent=`Mission ${i+1} of ${LEVELS.length}`;
+  $("levelName").textContent=l.name;
+  $("objective").textContent=l.objective;
+  $("prompt").textContent=l.doubleJump?"WASD move · Space jump (Double Jump enabled)[cite: 2] · Mouse look":"WASD move · Space jump · Mouse look[cite: 2]";
+  $("gamecanvas").focus();screen("game");
+  if(G.isHost)Net.broadcastState();
+ },
+ makeCat(x,y,z){
+  const g=new THREE.Group();
+  g.position.set(x,y,z);
+  this.scene.add(g);this.world.push(g);
+  this.gltfLoader.load("https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb",
+   (gltf)=>{
+    const model=gltf.scene;
+    model.scale.set(0.9,0.9,0.9);
+    model.position.y=-0.5;
+    g.add(model);
+   },
+   undefined,
+   ()=>{
+    const body=new THREE.Mesh(new THREE.SphereGeometry(.75,16,12),this.mat("#ffffff"));
+    body.scale.set(1,1.15,1);g.add(body);
+   }
+  );
+  return g;
+ },
+ createPlayerMesh(color){
+  const g=new THREE.Group();
+  const mat=this.mat(color, 0.2);
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,1.3,16),mat);
+  body.position.y=0.65;
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.4,16,16),mat);
+  head.position.y=1.4;
+  
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.3), this.mat("#000000"));
+  visor.position.set(0, 1.45, -0.2);
+  
+  g.add(body);g.add(head);g.add(visor);
+  return g;
+ },
+ applyRemoteState(){
+  const l=LEVELS[G.level];
+  if(this.cat)this.cat.visible=!G.levelState.catSaved;
+  if(this.bridge&&l.bridge)this.bridge.visible=!!G.levelState.bridge;
+  
+  const players=[...G.players.values()];
+  players.forEach(p=>{
+   if(p.id===G.myId)return;
+   const pos=G.remote.get(p.id);if(!pos)return;
+   let mesh=this.remoteMeshes.get(p.id);
+   if(!mesh){
+    mesh=this.createPlayerMesh(p.color);
+    this.scene.add(mesh);
+    this.remoteMeshes.set(p.id,mesh);
+   }
+   mesh.position.set(pos.x,pos.y-.8,pos.z);
+   mesh.rotation.y=pos.ry;
+  });
+ },
+ updateWorld(){
+  const l=LEVELS[G.level],s=G.levelState;
+  
+  if(l.plates){
+   let newlyActivated = false;
+   const plateChecks=l.plates.map((p, idx)=>{
+    const pressed = [...G.players.keys()].some(id=>{
+      const pos=id===G.myId?this.player:G.remote.get(id);
+      return pos && Math.hypot(pos.x-p.x, pos.z-p.z)<2.2 && Math.abs(pos.y - 1.0) < 1.5;
+    });
+    if(this.plates[idx]) {
+      if(pressed || s.plates?.[idx]) {
+        this.plates[idx].material.color.setHex(0xffb703);
+        this.plates[idx].position.y = 1.0;
+      }
+    }
+    return pressed;
+   });
+   
+   if(G.isHost){
+    if(!s.plates) s.plates = new Array(l.plates.length).fill(false);
+    plateChecks.forEach((chk, i) => { 
+      if(chk && !s.plates[i]) {
+        s.plates[i] = true;
+        newlyActivated = true;
+      }
+    });
+    if(s.plates.some(Boolean)) {
+      if(!s.bridge) newlyActivated = true;
+      s.bridge = true;
+    }
+    if(newlyActivated) {
+      SoundFX.playSwitch();
+    }
+    if(s.bridge!==!!this.bridge?.visible){
+      if(this.bridge) this.bridge.visible = s.bridge;
+      Net.broadcastState();
+    }
+   }
+  }
+  
+  if(l.keys){
+   l.keys.forEach((k,i)=>{
+    if(s.keys && s.keys[i]) {
+      if(this.keyMeshes[i]) this.keyMeshes[i].visible = false;
+    } else {
+      if(this.keyMeshes[i]) this.keyMeshes[i].rotation.y += 0.03;
+    }
+   });
+   
+   if(G.isHost) {
+    const near=[...G.players.keys()];
+    l.keys.forEach((k,i)=>{
+     if(s.keys[i])return;
+     const hit=near.some(id=>{const p=id===G.myId?this.player:G.remote.get(id);return p&&Math.hypot(p.x-k.x,p.z-k.z)<1.3&&Math.abs(p.y-k.y)<2});
+     if(hit){
+      s.keys[i]=true;
+      SoundFX.playKey();
+      Net.broadcastState();
+     }
+    });
+   }
+  }
+  
+  if(G.isHost){
+   let done=false;
+   if(!l.bridge && !l.keys) done=this.nearCat();
+   if(l.bridge && !l.keys) done=!!s.bridge&&this.nearCat();
+   if(l.keys) done=s.keys&&s.keys.every(Boolean)&&this.nearCat();
+   if(done&&!s.catSaved){
+    s.catSaved=true;
+    G.status="levelComplete";
+    SoundFX.playVictory();
+    $("victoryTitle").textContent=`Level ${G.level+1} complete!`;
+    $("victoryText").textContent=`${LEVELS[G.level].name} cleared. The cat is safe.`;
+    $("victory").classList.add("show");
+    if(this.cat)this.cat.visible=false;
+    Net.broadcastState();
+   }
+  }
+ },
+ nearCat(){const c=LEVELS[G.level].cat;return Math.hypot(this.player.x-c.x,this.player.z-c.z)<2.3&&Math.abs(this.player.y-c.y)<3},
+ collide(){
+  const l=LEVELS[G.level],p=this.player;let bestY=-Infinity;
+  for(const b of l.platforms){
+   if(p.x>b.minX-.35&&p.x<b.maxX+.35&&p.z>b.minZ-.35&&p.z<b.maxZ+.35&&p.y>=b.top-.2&&p.y<=b.top+1.2)bestY=Math.max(bestY,b.top);
+  }
+  if(l.bridge&&G.levelState.bridge){
+   const b=l.bridge;if(p.x>b.minX-.35&&p.x<b.maxX+.35&&p.z>b.minZ-.35&&p.z<b.maxZ+.35&&p.y>=b.top-.2&&p.y<=b.top+1.2)bestY=Math.max(bestY,b.top);
+  }
+  if(bestY>-Infinity&&p.vy<=0){p.y=bestY+1;p.vy=0;p.onGround=true;p.canDoubleJump=false}else p.onGround=false;
+ },
+ move(dt){
+  const p=this.player;if(!G.started||G.status!=="playing")return;
+  const speed=7;
+  
+  const f=(this.keys.KeyW?1:0)-(this.keys.KeyS?1:0),r=(this.keys.KeyD?1:0)-(this.keys.KeyA?1:0);
+  const len=Math.hypot(f,r)||1;const fw=f/len,rr=r/len;
+  
+  p.x+=(-Math.sin(this.yaw)*fw+Math.cos(this.yaw)*rr)*speed*dt;
+  p.z+=(-Math.cos(this.yaw)*fw-Math.sin(this.yaw)*rr)*speed*dt;
+  
+  p.x=clamp(p.x,-45,45);p.z=clamp(p.z,-45,45);p.ry=this.yaw;
+  
+  p.vy-=20*dt;p.y+=p.vy*dt;this.collide();
+  if(p.y<-12){const sp=LEVELS[G.level].spawn;p.x=sp.x;p.y=sp.y;p.z=sp.z;p.vy=0}
+ },
+ cameraUpdate(){
+  const p=this.player;this.camera.position.set(p.x,p.y+.65,p.z);this.camera.rotation.order="YXZ";this.camera.rotation.y=this.yaw;this.camera.rotation.x=this.pitch;
+ },
+ animate(){
+  requestAnimationFrame(()=>this.animate());const dt=Math.min(this.clock.getDelta(),.05);
+  this.move(dt);this.updateWorld();this.cameraUpdate();this.applyRemoteState();this.renderer.render(this.scene,this.camera);
+  if(G.started&&!G.isHost&&G.status==="playing")this._sendAccum=(this._sendAccum||0)+dt;
+  if(!G.isHost&&G.started&&this._sendAccum>.05){this._sendAccum=0;Net.guestPos()}
+  if(G.isHost&&G.started) this._hostAccum=(this._hostAccum||0)+dt;
+  if(G.isHost&&G.started&&this._hostAccum>.08){this._hostAccum=0;Net.broadcastState()}
+ }
+};
+Engine.init();
+</script>
+</body>
+</html>
